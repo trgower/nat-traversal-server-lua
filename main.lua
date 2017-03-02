@@ -1,3 +1,8 @@
+---------------------------------------
+-- main.lua
+-- Tanner Gower
+-- NAT Traversal Server
+---------------------------------------
 require "enet"
 require "lobby"
 require("pl.stringx").import()
@@ -8,19 +13,23 @@ local running = true
 print "Starting server loop..."
 while running do
   event = host:service(50)
+  -- Did we receive an event?
   if event then
     if event.type == "connect" then
       print("Connection from ", event.peer)
     elseif event.type == "receive" then
-      --print("Recieved data: ", event.peer, event.data)
+      -- Split command with whitespace as delimiter
       splitted = event.data:split()
       if splitted[1] == "host" then
+        -- Creates a new lobby and stores it in the lobbies table
         table.insert(lobbies, Lobby(event.peer:connect_id(), event.peer))
       elseif splitted[1] == "join" then
         hostid = splitted[2]
+        -- Looks for the hostid in the lobbies table
         found = false
         for i, lob in ipairs(lobbies) do
           if lob:getHostId() == hostid then
+            -- Join the lobby
             lob:join(event.peer, true)
             found = true
           end

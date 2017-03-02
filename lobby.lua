@@ -1,3 +1,9 @@
+---------------------------------------
+-- lobby.lua
+-- Tanner Gower
+-- NAT Traversal Server
+---------------------------------------
+
 Object = require "classic"
 
 Lobby = Object:extend()

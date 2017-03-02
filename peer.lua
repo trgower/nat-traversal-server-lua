@@ -1,3 +1,11 @@
+---------------------------------------
+-- peer.lua
+-- Tanner Gower
+-- NAT Traversal Server
+
+-- Used for testing purposes
+---------------------------------------
+
 require "enet"
 local address, port = "127.0.0.1", 34567
 local host = enet.host_create()
