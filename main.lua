@@ -10,9 +10,25 @@ local host = enet.host_create("*:34567")
 
 local lobbies = {}
 local running = true
+
+function getLobbyWithPeer(peer)
+  for i, lob in pairs(lobbies) do
+    if lob:containsPeer(peer) then
+      return lob
+    end
+  end
+  return nil
+end
+
+function updateLobbies()
+  for i, lob in pairs(lobbies) do
+    lob:update()
+  end
+end
+
 print "Starting server loop..."
 while running do
-  event = host:service(50)
+  event = host:service(100)
   -- Did we receive an event?
   if event then
     if event.type == "connect" then
@@ -20,32 +36,40 @@ while running do
     elseif event.type == "receive" then
       -- Split command with whitespace as delimiter
       splitted = event.data:split()
-      if splitted[1] == "host" then
-        -- Creates a new lobby and stores it in the lobbies table
-        table.insert(lobbies, Lobby(event.peer:connect_id(), event.peer))
-      elseif splitted[1] == "join" then
-        hostid = splitted[2]
-        -- Looks for the hostid in the lobbies table
-        found = false
-        for i, lob in ipairs(lobbies) do
-          if lob:getHostId() == hostid then
-            -- Join the lobby
+      local lobby = getLobbyWithPeer(event.peer)
+      if lobby then -- Check if peer is in a lobby
+        if splitted[1] == "leave" then
+          lobby:leave(event.peer, true)
+        elseif splitted[1] == "ready" then
+          lobby:ready(event.peer, true)
+        elseif splitted[1] == "start" then
+          lobby:start(event.peer, true)
+        end
+      else -- If not in lobby, use these commands
+        if splitted[1] == "host" then
+          -- Creates a new lobby and stores it in the lobbies table
+          lobbies[event.peer:connect_id()] = Lobby(event.peer:connect_id(), event.peer)
+        elseif splitted[1] == "join" then
+          hostid = tonumber(splitted[2])
+          -- Looks for the hostid in the lobbies table
+          lob = lobbies[hostid]
+          if lob then
             lob:join(event.peer, true)
-            found = true
+          else
+            event.peer:send("Unable to find lobby with host id: "..hostid)
           end
+        elseif splitted[1] == "kill" then
+          running = false
+        else
+          print("Unrecognized data from "..tostring(event.peer).." -> '"..event.data.."'")
         end
-        if not found then
-          event.peer:send("Unable to find lobby with host id: "..hostid)
-        end
-      elseif splitted[1] == "kill" then
-        running = false
-      else
-        print("Unrecognized data from "..tostring(event.peer).." -> '"..event.data.."'")
       end
     elseif event.type == "disconnect" then
       print("Disconnected: ", event.peer)
     end
   end
+  
+  updateLobbies()
 end
 
 
