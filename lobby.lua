@@ -91,7 +91,6 @@ function Lobby:join(peer, verbose)
     peer:send("joingood " .. self.peerModels[tostring(peer)])
   end
   self:sendPeerInfoTo(peer)
-  self:setAllReady(false)
 end
 
 function Lobby:leave(peer, verbose)
@@ -107,11 +106,10 @@ function Lobby:leave(peer, verbose)
     self:dispose()
   end
   self:sendMessageToPeers(peer, "left "..tostring(peer))
-  self:setAllReady(false)
 end
 
 function Lobby:start(peer, verbose)
-  if allReady() and (peer:connect_id() == self.hostid) then
+  if self:allReady() and (peer:connect_id() == self.hostid) then
     self:broadcast("start")
   end
 end
