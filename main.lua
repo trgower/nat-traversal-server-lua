@@ -23,6 +23,10 @@ end
 function updateLobbies()
   for i, lob in pairs(lobbies) do
     lob:update()
+    if lob:readyToDispose() then
+      lobbies[i] = nil
+      print("deleted")
+    end
   end
 end
 
@@ -41,7 +45,9 @@ while running do
         if splitted[1] == "leave" then
           lobby:leave(event.peer, true)
         elseif splitted[1] == "ready" then
-          lobby:ready(event.peer, true)
+          lobby:ready(event.peer)
+        elseif splitted[1] == "unready" then
+          lobby:unready(event.peer)
         elseif splitted[1] == "start" then
           lobby:start(event.peer, true)
         end
@@ -66,6 +72,10 @@ while running do
       end
     elseif event.type == "disconnect" then
       print("Disconnected: ", event.peer)
+      local lobby = getLobbyWithPeer(event.peer)
+      if lobby then
+        lobby:leave(event.peer, true)
+      end
     end
   end
   
