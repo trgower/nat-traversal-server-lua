@@ -24,7 +24,7 @@ function updateLobbies()
   for i, lob in pairs(lobbies) do
     lob:update()
     if lob:readyToDispose() then
-      --lob:disconnectPeers()
+--      lob:disconnectPeers()
       lobbies[i] = nil
     end
   end
@@ -46,6 +46,14 @@ function processEvent(event)
         lobby:unready(event.peer)
       elseif splitted[1] == "start" then
         lobby:start(event.peer, true)
+      elseif splitted[1] == "bu" then
+        lobby:bufferUp()
+      elseif splitted[1] == "bd" then
+        lobby:bufferDown()
+      elseif splitted[1] == "pmu" then
+        lobby:setCharacterModel(tostring(event.peer), splitted[2])
+        lobby:sendMessageToPeers(event.peer, "ccu " .. tostring(event.peer) .. " " 
+          .. splitted[2])
       end
     else -- If not in lobby, use these commands
       if splitted[1] == "host" then
@@ -75,8 +83,8 @@ function processEvent(event)
   end
 end
 
-function processAllEvents()
-  event = host:service()
+function processAllEvents(ms)
+  event = host:service(ms)
   while event do 
     processEvent(event) 
     event = host:service()
@@ -86,7 +94,7 @@ end
 print "Starting server loop..."
 while running do
 
-  processAllEvents()
+  processAllEvents(50)
   updateLobbies()
 
 end

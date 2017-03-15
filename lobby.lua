@@ -9,14 +9,12 @@ Object = require "classic"
 Lobby = Object:extend()
 
 function Lobby:new(hostid, host)
+  self.spots = {false, false, false, false}
+  self.peerSpots = {}
   self.models = {}
-  self.models["soldier"] = false
-  self.models["hitman"] = false
-  self.models["robot"] = false
-  self.models["survivor"] = false
-  
+
+  self.buffer = 10
   self.peers = {}
-  self.peerModels = {}
   self.readies = {}
   self.hostid = hostid
   self.host = host;
@@ -25,21 +23,25 @@ function Lobby:new(hostid, host)
   self:join(host)
   self:ready(self.host, true)
   
-  self.host:send("hostid " .. hostid .. " " .. self.peerModels[tostring(host)])
+  self.host:send("hostid " .. hostid .. " " .. self.peerSpots[tostring(host)])
 end
 
 function Lobby:update()
   
 end
 
-function Lobby:getLockFirstAvailableModel()
-  for i, v in pairs(self.models) do
+function Lobby:getLockFirstAvailableSpot()
+  for i, v in pairs(self.spots) do
     if not v then
-      self.models[i] = true
+      self.spots[i] = true
       return i
     end
   end
   return nil
+end
+
+function Lobby:setCharacterModel(p, m)
+  self.models[p] = m
 end
 
 function Lobby:setAllReady(r)
@@ -60,7 +62,8 @@ end
 function Lobby:sendPeerInfoTo(peer)
   for i, p in pairs(self.peers) do
     if not (peer == p) then
-      peer:send("peerinfo " .. self.peerModels[tostring(p)] .. " " .. tostring(p))
+      peer:send("peerinfo " .. tostring(p) .. " " .. self.peerSpots[tostring(p)] .. " "
+        .. self.models[tostring(p)])
     end
   end
 end
@@ -82,13 +85,14 @@ end
 function Lobby:join(peer, verbose)
   self.peers[tostring(peer)] = peer
   self.readies[tostring(peer)] = false
-  self.peerModels[tostring(peer)] = self:getLockFirstAvailableModel()
+  self.peerSpots[tostring(peer)] = self:getLockFirstAvailableSpot()
+  self.models[tostring(peer)] = self.peerSpots[tostring(peer)]
   if verbose then
     print("Peer "..tostring(peer).." has joined lobby "..self.hostid)
   end
-  self:sendMessageToPeers(peer, "joined " .. self.peerModels[tostring(peer)] .. " " .. tostring(peer))
+  self:sendMessageToPeers(peer, "joined " .. tostring(peer) .. " " .. self.peerSpots[tostring(peer)])
   if not (self.host == peer) then
-    peer:send("joingood " .. self.peerModels[tostring(peer)])
+    peer:send("joingood " .. self.peerSpots[tostring(peer)])
   end
   self:sendPeerInfoTo(peer)
 end
@@ -96,21 +100,33 @@ end
 function Lobby:leave(peer, verbose)
   self.peers[tostring(peer)] = nil
   self.readies[tostring(peer)] = nil
-  self.models[self.peerModels[tostring(peer)]] = false
-  self.peerModels[tostring(peer)] = nil
+  self.spots[self.peerSpots[tostring(peer)]] = false
+  self.peerSpots[tostring(peer)] = nil
+  self.models[tostring(peer)] = nil
   if verbose then
     print("Peer "..tostring(peer).." has left lobby "..self.hostid)
   end
   if peer == self.host then
     self:sendMessageToPeers(peer, "hostleft")
     self:dispose()
+  else
+    self:sendMessageToPeers(peer, "left "..tostring(peer))
   end
-  self:sendMessageToPeers(peer, "left "..tostring(peer))
+end
+
+function Lobby:bufferUp()
+  self.buffer = self.buffer + 1
+  self.host:send("buk")
+end
+
+function Lobby:bufferDown()
+  self.buffer = self.buffer - 1
+  self.host:send("bdk")
 end
 
 function Lobby:start(peer, verbose)
   if self:allReady() and (peer:connect_id() == self.hostid) then
-    self:broadcast("start")
+    self:broadcast("start " .. self.buffer)
     self:dispose()
   end
 end
