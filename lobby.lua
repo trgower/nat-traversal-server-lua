@@ -111,6 +111,7 @@ end
 function Lobby:start(peer, verbose)
   if self:allReady() and (peer:connect_id() == self.hostid) then
     self:broadcast("start")
+    self:dispose()
   end
 end
 
@@ -135,6 +136,12 @@ function Lobby:containsPeer(peer)
     end
   end
   return false
+end
+
+function Lobby:disconnectPeers()
+  for i, p in pairs(self.peers) do
+    p:disconnect()
+  end
 end
 
 function Lobby:dispose()
