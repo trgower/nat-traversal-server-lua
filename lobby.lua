@@ -8,11 +8,11 @@ Object = require "classic"
 
 Lobby = Object:extend()
 
-function Lobby:new(hostid, host)
+function Lobby:new(hostid, host, hostname)
   self.spots = {false, false, false, false}
   self.peerSpots = {}
   self.models = {}
-
+  self.names = {}
   self.buffer = 10
   self.peers = {}
   self.readies = {}
@@ -20,10 +20,10 @@ function Lobby:new(hostid, host)
   self.host = host;
   self.delete = false
   print("Lobby created with "..tostring(self.host).." as the host("..hostid..")")
-  self:join(host)
+  self:join(host, hostname)
   self:ready(self.host, true)
   
-  self.host:send("hostid " .. hostid .. " " .. self.peerSpots[tostring(host)])
+  self.host:send("hostid " .. hostid .. " " .. self.peerSpots[tostring(host)] .. " " .. hostname)
 end
 
 function Lobby:update()
@@ -63,7 +63,7 @@ function Lobby:sendPeerInfoTo(peer)
   for i, p in pairs(self.peers) do
     if not (peer == p) then
       peer:send("peerinfo " .. tostring(p) .. " " .. self.peerSpots[tostring(p)] .. " "
-        .. self.models[tostring(p)])
+        .. self.models[tostring(p)] .. " " .. self.names[tostring(p)])
     end
   end
 end
@@ -82,17 +82,18 @@ function Lobby:broadcast(msg)
   end
 end
 
-function Lobby:join(peer, verbose)
+function Lobby:join(peer, name, verbose)
   self.peers[tostring(peer)] = peer
   self.readies[tostring(peer)] = false
   self.peerSpots[tostring(peer)] = self:getLockFirstAvailableSpot()
   self.models[tostring(peer)] = self.peerSpots[tostring(peer)]
+  self.names[tostring(peer)] = name
   if verbose then
     print("Peer "..tostring(peer).." has joined lobby "..self.hostid)
   end
-  self:sendMessageToPeers(peer, "joined " .. tostring(peer) .. " " .. self.peerSpots[tostring(peer)])
+  self:sendMessageToPeers(peer, "joined " .. name .. " " .. tostring(peer) .. " " .. self.peerSpots[tostring(peer)])
   if not (self.host == peer) then
-    peer:send("joingood " .. self.peerSpots[tostring(peer)])
+    peer:send("joingood " .. self.peerSpots[tostring(peer)] .. " " .. name)
   end
   self:sendPeerInfoTo(peer)
 end
@@ -103,6 +104,7 @@ function Lobby:leave(peer, verbose)
   self.spots[self.peerSpots[tostring(peer)]] = false
   self.peerSpots[tostring(peer)] = nil
   self.models[tostring(peer)] = nil
+  self.names[tostring(peer)] = nil
   if verbose then
     print("Peer "..tostring(peer).." has left lobby "..self.hostid)
   end

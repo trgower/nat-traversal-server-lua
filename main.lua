@@ -58,13 +58,13 @@ function processEvent(event)
     else -- If not in lobby, use these commands
       if splitted[1] == "host" then
         -- Creates a new lobby and stores it in the lobbies table
-        lobbies[event.peer:connect_id()] = Lobby(event.peer:connect_id(), event.peer)
+        lobbies[event.peer:connect_id()] = Lobby(event.peer:connect_id(), event.peer, splitted[2])
       elseif splitted[1] == "join" then
         hostid = tonumber(splitted[2])
         -- Looks for the hostid in the lobbies table
         lob = lobbies[hostid]
         if lob then
-          lob:join(event.peer, true)
+          lob:join(event.peer, splitted[3], true)
         else
           event.peer:send("Unable to find lobby with host id: "..hostid)
         end
